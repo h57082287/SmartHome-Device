@@ -2,7 +2,7 @@
 #include <wifimgr.h>
 
 wifimgr::wifimgr(){
-    wifi = new WiFiClass();
+    wifi = new ESP8266WiFiClass();
     this->wifi->mode(WIFI_AP_STA);
 }
 

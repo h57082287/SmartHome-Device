@@ -2,7 +2,7 @@
 #include <ArduinoJson.h>
 
 webmgr::webmgr(){
-    this->server = new WebServer(80);
+    this->server = new ESP8266WebServer(80);
 }
 
 webmgr::~webmgr(){

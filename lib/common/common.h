@@ -4,6 +4,7 @@
 #define SSID_LENS 255
 #define IPv4_LENS 15
 #define MAX_LIST_AP 255
+#define MAX_SSID_LEN 255
 
 
 typedef struct{

@@ -1,11 +1,12 @@
 #ifndef WIFIMGR_H
 #define WIFIMGR_H
-#include <WiFi.h>
+// #include <WiFi.h>
+#include <ESP8266WiFi.h>
 
 class wifimgr
 {
 private:
-    WiFiClass *wifi;
+    ESP8266WiFiClass *wifi;
     int begin=0, end = 60, timeout=60;
 
 public:
