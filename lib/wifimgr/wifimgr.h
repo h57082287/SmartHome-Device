@@ -1,6 +1,5 @@
 #ifndef WIFIMGR_H
 #define WIFIMGR_H
-// #include <WiFi.h>
 #include <ESP8266WiFi.h>
 
 class wifimgr

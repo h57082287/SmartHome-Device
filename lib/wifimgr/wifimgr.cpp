@@ -11,7 +11,6 @@ wifimgr::~wifimgr(){
 }
 
 bool wifimgr::connectAP(char* ssid, char * password){
-    int i;
     bool status = false;
     this->wifi->begin(ssid, password);
     for(;;){
@@ -46,6 +45,8 @@ int wifimgr::getAPList(AP *aps){
     int i, ap_nums = this->wifi->scanNetworks();
     for(i=0;i<ap_nums;i++){
         memcpy(aps[i].SSID, (char*)this->wifi->SSID(i).c_str(), MAX_SSID_LEN);
+        memcpy(aps[i].MAC, (char*)this->wifi->macAddress().c_str(), MAC_LEN);
+        this->wifi->macAddress();
         aps[i].channel = this->wifi->channel(i);
         aps[i].RSSI = this->wifi->RSSI(i);
     }
