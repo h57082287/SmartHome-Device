@@ -7,7 +7,6 @@
 #define MAX_SSID_LEN 255
 #define MAC_LEN 20
 
-
 typedef struct{
     char SSID[SSID_LENS];
     int channel;

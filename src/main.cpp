@@ -21,7 +21,7 @@ void setup() {
   Serial.printf("\n\n\n\n\nSystem boot up......\n");
   // Declare wifimgr
   wifi = new wifimgr();
-  web = new webmgr();
+  web = new webmgr(wifi);
   Serial.printf("[System][INFO]wifimgr created.\n");
 
   Serial.printf("[System][INFO]Aollocation memery address.....\n");

@@ -2,11 +2,9 @@
 #include <ArduinoJson.h>
 
 
-void webmgr::homepage(){
-}
-
-webmgr::webmgr(){
+webmgr::webmgr(wifimgr *wifi){
     this->server = new ESP8266WebServer(80);
+    this->wifi = wifi;
 }
 
 webmgr::~webmgr(){
@@ -38,6 +36,28 @@ void webmgr::setupAPI(AP *aps){
     this->server->on("/aplist", [this, aps](){
         this->__Print_Log("User in....", "INFO");
         this->__handler_getAPList(aps);
+    });
+
+    this->server->on("/refresh", [this, aps]{
+        this->__Print_Log("Now in refresh function...", "INFO");
+        this->wifi->getAPList(aps);
+        this->__handler_getAPList(aps);
+        this->__Print_Log("Data return and user out !", "INFO");
+    });
+
+    this->server->on("/", [this]{
+        char *context = "\
+            <!DOCTYPE html>\
+            <html>\
+                <head>\
+                    <title>This is test website</title>\
+                </head>\
+                <body>\
+                    <p>Test</p>\
+                </body>\
+            </html>\
+        ";
+        this->server->send(200, "text/html", context);
     });
 }
 
