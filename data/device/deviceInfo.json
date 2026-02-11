@@ -1,0 +1,10 @@
+{
+    "actions": {
+        "action.devices.commands.appInstall": {
+            "command": "action.devices.commands.appInstall",
+            "params": {
+                "newApplication": "YouTube"
+            }
+        }
+    }
+}

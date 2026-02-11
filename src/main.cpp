@@ -1,8 +1,13 @@
+#define ENABLE_SERVICE_AUTH
+#define ENABLE_FIRESTORE
+
 #include <Arduino.h>
 #include <cJSON.h>
 #include <LittleFS.h>
 #include <ESP8266WiFi.h>
 #include <ESP8266mDNS.h>
+#include <FirebaseClient.h>
+#include "ExampleFunctions.h"
 
 #define DEBUG 1
 #define MAXLIST 10
@@ -11,6 +16,11 @@
 #define PASSWORD "1234567890"
 #define APRECORD_FILE "/tmp/connect.json"
 #define USER_INFO_FILE "/tmp/user.json"
+
+const char PRIVATE_KEY[] PROGMEM = "-----BEGIN PRIVATE KEY-----\nMIIEvgIBADANBgkqhkiG9w0BAQEFAASCBKgwggSkAgEAAoIBAQDFy/VDTUwYnbef\nN58V4gUzeKM5BC0+yTTIROailsPdihsiVEA5SkJ9VV+V5eLrvngvNntjR6k1du85\nimjmQ3xelyqU+8/qa4yTusZJtz8ZVCq8+AkFzjXh78OiLr8pb6/HUTbfomShp6F3\nJqYCrKZWEJnOo6fckmZA7UNSqQe2u0dVtrs7RPxKD6eOsZlbAkOspsYFdOqkKOYC\nGA20LGAHGFHIOxmod3OjULXGVyDaguPm/uE1yQyI78lxgpnKWf6hXIx3oTfyurb0\ntww/vcuTQLakgRD9Ay3si8F4tofzOjkaWWnSuwTSZjoA8YngiJY78bsVpLeo11zw\n5GQq2IHBAgMBAAECggEAE/b1R5jKwIVS3nBHz3aj3cEkgIHKa1b1y+0gdnLPTFI/\nUOS+Iso7EdmHL2Mn13G/Qcy3AZtfGfVqSh2NXwiayhVqB+Wu49N9OgAVOaWUaeMT\n+UTz7DEXQTnpPjqHsxAB5xVse4AxthtscdFl2klA9NjyHWhpbhsc1Rrdu78x9yCc\ngVBadG4I65Xn/e53ZW9Mgva3ILeM7/SuteQoXX7Nuz6P4c3tsf3LnNoUVaBuj3d4\nYWsX/2y3lpcqCv9Q73EdFnbxfUuyhHRRQHJCe933vpLY/Jlz9mxqsXff2VO4qfqy\nlQuevJfSUBk+CcTziV18+dgWqT4I32Sey8vUU2iZ0QKBgQD2sJo5Z5aymNh5TSvj\n+Hgj+UO7oksB4v5FTNUG1HfrlivF6f+iDFifzFi4BXUBfaEQG/3AmHkikpznieEm\nYRMPddtPIM3f1fJp35WHA2PH6KGoUZFj8cWM48n44BtQezrdVmKXbjM6BJLKSfjs\nSkfLNIEsbjrsUyCenZa+N/fF9QKBgQDNQvlMlYxpcN1CJ2u6a3PLygR+PPq1azqL\n3YPM9BfdveMFcvajsTFhTTV6atLeFHkwSkUlUNomSJIX9lyHY8ehNLbXPVCpakQd\nEKkgsD2L1KBjhh6FEljKt+33dDTRKGC0q03xnYOJ8i6vfeOg3TpRJm+R+Ccv8CVq\n/QRYiiihHQKBgQCRblO9e+BPseQMvv4dC6JoMs9Hksn9dsDIQh9kQ2XfMUzlBKp7\n8iNdMa8r7aupEVMemCHkpP7k7uIpbhOZ+Kiv+J8t6vzz9MFQwUr5qXntpKuI+21n\nKmV4ReIQIq53p+5wBjlhZMo2bfPL5ggl5TSmC3ILq4B5Shh06hqwUXZ08QKBgAa7\nDHuzZ7BJcCfsLP8m6Nwk2rLdAweR5ZCSifDdjC7MPDaAh4/kjo73PiqueA2qNDMe\nLFhF53Fb7dZ1UKFr5y7lEJ3MN+nmPyeI1VLqFIqSRVQeIMASUvEKyPXVTKoTHeCu\nwVaL6LVMSLWedilfN7tTfFMYBQjwYfm5JDxXA3ANAoGBAOVq3/6Q4TdyCUwVcK4u\nRDm34gYeSQQMP7nnp5D2Od0ep8WWEy6ePCIHfn0kxssdDgGZdJE8WVky7XpX/8ie\nhQjlItZSWQFXqoEiI4jxxxRl/Cvzm+GcXS1vGhyH1y2//nFlpIP78FOfL6WGrHZs\nd57BrtKMb95U2TMnvY3vPGwR\n-----END PRIVATE KEY-----\n";
+const char CLIENT_EMAIL[] PROGMEM = "firebase-adminsdk-hsqdp@smart-home-system-35315.iam.gserviceaccount.com";
+const char CLIENT_ID[] PROGMEM = "100625490889847434055";
+const char PROJECT_ID[] PROGMEM = "smart-home-system-35315";
 
 const char* ssid     = "HITRON-3C";
 const char* password = "0960000573";
@@ -23,6 +33,15 @@ char header[1024];
 char content[4096];
 char record_content[256];
 char data[15][256] = {};
+bool isTaskComplete = false;
+
+SSL_CLIENT ssl_client;
+using AsyncClient = AsyncClientClass;
+AsyncClient aClient(ssl_client);
+FirebaseApp app;
+ServiceAuth serviceAuth(CLIENT_EMAIL, PROJECT_ID, PRIVATE_KEY);
+Firestore::Documents docs;
+AsyncResult result;
 
 // Define HTTP methods
 enum http_method {
@@ -49,6 +68,7 @@ void parse_http_request(http_request *req, const char* raw_req);
 void read_file(char* cntx, const char* file);
 void create_header(char* header, char* path);
 void doAPIProcess(char* result, http_method method, char* path, char* params, char* body);
+void GetDataFromFirebase(AsyncResult &aResult);
 
 void setup() {
   Serial.begin(115200);
@@ -87,9 +107,16 @@ void setup() {
   }
   Serial.println(WiFi.localIP());
   server.begin();
+  
+  // Setup Firebase
+  set_ssl_client_insecure_and_buffer(ssl_client);
+  app.setTime(get_ntp_time());
+  initializeApp(aClient, app, getAuth(serviceAuth), auth_debug_print, "Auth Task");
+  app.getApp<Firestore::Documents>(docs);
 }
 
 void loop() {
+  app.loop();
 #ifdef DEBUG
   Serial.println("Heap: " + String(ESP.getFreeHeap()));
   delay(500);
@@ -134,6 +161,13 @@ void loop() {
       }
     }
     client.stop();
+  }
+   if (app.ready() && !isTaskComplete) {
+    isTaskComplete = true;
+#ifdef DEBUG
+    Serial.println("Starting Firebase task...");
+#endif
+    docs.get(aClient, Firestore::Parent(PROJECT_ID, "(default)"), "Smart-Home/google-oauth2%7C113923683955915836209/Device/wxYEBtqJPNJZJyCpav6n", GetDocumentOptions(), GetDataFromFirebase, "Get Task");
   }
   delay(100);
 }
@@ -359,4 +393,14 @@ void doAPIProcess(char* result, http_method method, char* path, char* params, ch
       strcpy(result, "{\"status\":\"error\",\"message\":\"Failed to save user info\"}");
     }
   } 
+}
+
+void GetDataFromFirebase(AsyncResult &aResults) {
+  if (aResults.available()) {
+    Serial.printf("Task: %s, payload: %s\n", aResults.uid().c_str(), aResults.c_str());
+  } else if (aResults.isError()) {
+    Serial.printf("Task: %s, error: %s\n", aResults.uid().c_str(), aResults.error().message().c_str());
+  } else {
+    Serial.println("Task not ready or empty response");
+  }
 }
